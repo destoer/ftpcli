@@ -1,20 +1,16 @@
 #include "ActiveClient.h"
 #include <iostream>
-#include <stdlib.h>
+
+
 
 namespace ftp {
 
-ActiveClient::ActiveClient(const char *port) {
-
-	// bind on the port and wait for incoming connections
-	// the port command should be sent just before this
-	initConnection(port);
-	
+ActiveClient::ActiveClient(std::string port) {
+		initConnection(port.c_str());
 }
 
-
 void ActiveClient::initConnection(const char *port) {
-	
+
 	int rc = WSAStartup(MAKEWORD(2,2), &c.wsaData);
 	if(rc != 0) // non zero is a fatal error
 	{
@@ -62,12 +58,15 @@ void ActiveClient::initConnection(const char *port) {
 		exit(1);
 	}
 	
-	freeaddrinfo(c.result);	
+	freeaddrinfo(c.result);
 }
-
+	
 // destructor
 ActiveClient::~ActiveClient() {
-	WSACleanup(); // cleanup our sockets
+	//WSACleanup(); // cleanup our sockets (this should be called at the end)
+				 // what we want to do is just close the socket..
+	closesocket(c.clientSocket);
+	closesocket(c.listenSocket); // server so listen sockets needs to go too	
 }
 
 };

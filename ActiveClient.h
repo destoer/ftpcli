@@ -8,7 +8,7 @@ class ActiveClient: public DataClient
 {
 public:
 	// constructor
-	ActiveClient(const char *port); // should have support for hostnames too but this is fine for now
+	ActiveClient(std::string port); // should have support for hostnames too but this is fine for now
 	~ActiveClient(); // destructor
 
 private:

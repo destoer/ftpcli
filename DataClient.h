@@ -6,6 +6,8 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+#include <stdbool.h>
+#include <string>
 
 // holds the socket and connection info 
 // for data being sent over the data port
@@ -19,17 +21,28 @@ typedef struct {
 } DataClient_struct;
 
 
+
 namespace ftp {
 	
 class DataClient // base class for Active and Passive Client
 {
 public: // implements the data send and recv funcitons
 	
-	
+	bool recvAscii(std::string &data); 
+	bool toRecv(void) const; // true if more is to read  otherwhise false 
 
 	// internal struct to hold socket info 
 	// will be initialized by the dervied classes
-	DataClient_struct c; 	
+	DataClient_struct c;
+	
+	
+private:
+	bool transfer_state = true; // true when client initalized
+								// we can do this as only one data transfer is done 
+								// before it drops out of scope
+								// and we have to setup a new cli for the next 
+								// transfer that will allocated to a different port 
+	
 };
 	
 	

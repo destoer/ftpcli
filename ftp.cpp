@@ -4,10 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <stdlib.h>
-#include "CommandClient.h"
-#include "ActiveClient.h"
-#include "command.h"
-#include "constants.h"
+#include "ftp.h"
 
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x501 
@@ -167,6 +164,9 @@ int main(int argc, char *argv[]) {
 			
 			// delimit low and high and convert the ascii to int
 			pos3 = tmp.find(",");
+			
+			// both of these should hadnle the exception and either panic 
+			// or retry the transfer up to a point
 			uint8_t high = std::stoi(tmp.substr(0,pos3));
 			uint8_t low = std::stoi(tmp.substr(pos3+1));
 
@@ -181,15 +181,18 @@ int main(int argc, char *argv[]) {
 			// it should have recv and send functions for the different types of data transfers ftp can perform
 			// .toRecv() will panic if called while it hasnt recevied any data at all 
 			// need to figure out what terminates the transfer for ASCII
-			//ftp::PassiveClient data_client{ip,port};
+			ftp::PassiveClient data_client{ip,port}; // <-- one we have atm is the passive client wrongly named but change it later
 		
 			client.sendCommand("LIST");
 			std::cout << client.recvCommand();
-			/*while(data_client.toRecv()) {
-				cout << data_client.recvData();
-			}
 			
-			*/
+			std::string data;
+			while(data_client.toRecv()) { // no idea how to determine when data sends are done,,
+				if(data_client.recvAscii(data)) { // if read out correctly
+					std::cout << data;
+				}
+			}
+			std::cout << client.recvCommand();
 			
 		}
 		
