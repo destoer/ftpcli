@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <tuple>
 #include <stdlib.h>
 #include "ftp.h"
 
@@ -114,7 +115,6 @@ int main(int argc, char *argv[]) {
 		
 		// real command ftp understands is LIST
 		if(command == "dir") {  // do this first to practice using the data port
-			//client.sendCommand(command);
 			// need to split the command to get the directory
 			// and replace dir with list 
 			
@@ -122,56 +122,15 @@ int main(int argc, char *argv[]) {
 			// with PASV for this we need to send a command for pasv
 			// get the port back
 			// and then make a new tempoary client and connect on it
-			// this should be its on pasv class but we will reuse the old one 
-			// for now...
 			client.sendCommand("PASV");
 			std::string pasv_reply = client.recvCommand();
 			
 			std::cout << pasv_reply;
 			
-			// cool now we get something like this back 192,168,1,16,191,60
-			// we need to pull each token behind hte commas
-			// for the first 4 we use it to constuct the ip 
-			// and the last we use it to pull the port 
-			// where the port is the last two
-			// with the 191 being the high byte and the 0x60 being the low byte
+			std::string ip;
+			std::string port;
 			
-
-			// to pull this out we will replace the first 4 commas with .
-			// get the ip from up to the 4 .
-			// then pull the last section with rfind --> 191,60
-			// then finally pull the port
-			
-			// get just the bit we need out of the command reply
-			size_t pos1 = pasv_reply.find("("); 
-			size_t pos2 = pasv_reply.find(")");
-			std::string tmp = pasv_reply.substr(pos1+1,(pos2-1)-pos1);
-			
-			// for the first 4 replace ',' with '.'
-			size_t index = 0; 
-			for(int i = {0}; i <= 3; i++) {
-				index = tmp.find(",",index);
-				if(index == std::string::npos) { 
-					break;
-				}
-				tmp[index++] = '.';
-			}
-			size_t pos3 = tmp.rfind("."); // get the last dot where the ip ends
-			std::string ip = tmp.substr(0,pos3); // and finally pull the ip
-			
-			// remove the ip from the string so we just have port part
-			tmp = tmp.substr(pos3+1);
-			
-			// delimit low and high and convert the ascii to int
-			pos3 = tmp.find(",");
-			
-			// both of these should hadnle the exception and either panic 
-			// or retry the transfer up to a point
-			uint8_t high = std::stoi(tmp.substr(0,pos3));
-			uint8_t low = std::stoi(tmp.substr(pos3+1));
-
-		
-			std::string port = std::to_string((high << 8) | low); // finally build the port
+			std::tie(ip,port) = client.initPasv(pasv_reply);
 			
 			std::cout << "Connecting on " << ip << ":" << port << "\n";
 			
@@ -192,7 +151,7 @@ int main(int argc, char *argv[]) {
 					std::cout << data;
 				}
 			}
-			std::cout << client.recvCommand();
+			std::cout << client.recvCommand();	// should check the error code to see it worked fine
 			
 		}
 		

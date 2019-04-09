@@ -39,7 +39,7 @@ public:
 	// this need to return well defined exceptions saying if the send /recv has failed...
 	void sendCommand(std::string command);
 	std::string recvCommand(); // recv a command from the server
-
+	std::pair<std::string,std::string> initPasv(std::string);
 	
 	
 private:

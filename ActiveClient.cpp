@@ -5,6 +5,8 @@
 
 namespace ftp {
 
+// PORT Command must be sent before this inits
+// or we will have problems 
 ActiveClient::ActiveClient(std::string port) {
 		initConnection(port.c_str());
 }
