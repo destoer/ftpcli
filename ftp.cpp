@@ -5,6 +5,7 @@
 #include <vector>
 #include <tuple>
 #include <stdlib.h>
+#include <limits.h>
 #include "ftp.h"
 
 #undef _WIN32_WINNT
@@ -98,26 +99,38 @@ int main(int argc, char *argv[]) {
 	// ok we are now authenticated the user will now being sending commands 
 	// lets configure the data port with the PORT command behind the scenes
 	
-	// init the data port
-	//ftp::ActiveClient active_client{"7667"}; 
-	
 	
 	// for now we will user PASV to test the data send protocol
 	// we will hoever test the PORT command locally
 	
-	
 	// main ftp loop
-	std::string command; 
+	std::cin.clear();
+	std::cin.ignore();
+	std::string command;  // outside the loop as we dont want the constructor called 500 times
+	std::string arg;
 	for(;;) {
 		std::cout << "? ";
-		std::cin >> command;
+		std::getline(std::cin,command); // allow spaces
 		
+		// cool now we get just the prefix
+		size_t pos = command.find(" ");
+		
+		
+		if(pos != std::string::npos) {
+			arg = command.substr(pos); // get the arg
+			command = command.substr(0,pos); // strip after it so we have just the command
+		} else { // no arg
+			arg = "";
+		}
 		
 		// real command ftp understands is LIST
 		if(command == "dir") {  // do this first to practice using the data port
 			// need to split the command to get the directory
 			// and replace dir with list 
 			
+			
+			
+
 			// however before the do this we need to setup the data channel
 			// with PASV for this we need to send a command for pasv
 			// get the port back
@@ -127,6 +140,9 @@ int main(int argc, char *argv[]) {
 			
 			std::cout << pasv_reply;
 			
+			// should check that pasv initalized properly
+			// but im not sure how to best handle the error
+			
 			std::string ip;
 			std::string port;
 			
@@ -135,15 +151,18 @@ int main(int argc, char *argv[]) {
 			std::cout << "Connecting on " << ip << ":" << port << "\n";
 			
 			
-			// cool now we need a passive client that will connect and start recieveing over the data port 
-			// then we can test a directory send we will have to figure out how the data protocol works
-			// it should have recv and send functions for the different types of data transfers ftp can perform
-			// .toRecv() will panic if called while it hasnt recevied any data at all 
-			// need to figure out what terminates the transfer for ASCII
+			// init the passive client and request the directory
 			ftp::PassiveClient data_client{ip,port}; // <-- one we have atm is the passive client wrongly named but change it later
 		
-			client.sendCommand("LIST");
-			std::cout << client.recvCommand();
+			client.sendCommand("LIST" + arg);
+			std::string resp = client.recvCommand(); // check the error code in here too
+			
+			std::cout << resp;
+			
+			if(ftp::isError(ftp::getErrorCode(resp))) { // dir was not found so dont even try receiving any data
+				continue;
+			}
+			
 			
 			std::string data;
 			while(data_client.toRecv()) { // no idea how to determine when data sends are done,,
@@ -152,7 +171,8 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			std::cout << client.recvCommand();	// should check the error code to see it worked fine
-			
+												// for when we gui it
+												// but it aint useful for a cli 
 		}
 		
 		// default just send and recv
