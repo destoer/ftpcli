@@ -30,7 +30,7 @@ bool isError(int code) {
 }
 
 // will intialize a pasv connection to the server for us
-PassiveClient initPasv(CommandClient client) {
+DataClient initPasv(CommandClient client) {
 	// setup the data connection
 	client.sendCommand("PASV");
 	std::string resp = client.recvCommand();
@@ -47,8 +47,11 @@ PassiveClient initPasv(CommandClient client) {
 	std::string port;
 	std::tie(ip,port) = client.initPasv(resp);	
 	
-	std::cout << "Connecting on " << ip << ":" << port << "\n";				
-	PassiveClient data_client{ip,port};	
+	std::cout << "Connecting on " << ip << ":" << port << "\n";	
+
+	DataClient_struct c = initPasvStruct(ip.c_str(),port.c_str());
+	
+	DataClient data_client{c};	
 	
 	
 	return data_client;

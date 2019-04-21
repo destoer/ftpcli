@@ -1,1 +1,1 @@
-g++ src/ftp.cpp src/ActiveClient.cpp src/DataClient.cpp src/command.cpp src/CommandClient.cpp src/PassiveClient.cpp -lWs2_32 -o ftp
+g++ src/ftp.cpp src/Connection.cpp src/DataClient.cpp src/command.cpp src/CommandClient.cpp  -lWs2_32 -o ftp

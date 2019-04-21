@@ -94,11 +94,11 @@ void CommandClient::sendCommand(std::string command) {
 
 	
 	// send the actual buffer
-	int rc = send(c.clientSocket,command.c_str(),len,0);
+	int rc = send(con.clientSocket,command.c_str(),len,0);
 	if(rc == SOCKET_ERROR)
 	{
 		std::cerr << "send failed: " << WSAGetLastError() << std::endl;
-		//closesocket(c.clientSocket);
+		//closesocket(con.clientSocket);
 		//WSACleanup();
 		//throw runtime_error("Send failed: " + WSAGetLastError());
 		//return; // should throw an exception here
@@ -117,7 +117,7 @@ std::string CommandClient::recvCommand() {
 
 	// read one byte first and start at one 
 	// so we cant read out of bounds
-	int rc = recv(c.clientSocket,buffer,1,0);
+	int rc = recv(con.clientSocket,buffer,1,0);
 		
 	if( rc == SOCKET_ERROR )
 	{
@@ -134,12 +134,12 @@ std::string CommandClient::recvCommand() {
 	for(int i{1}; i < 512; i++)
 	{
 		// read one byte
-		int rc = recv(c.clientSocket,&buffer[i],1,0);
+		int rc = recv(con.clientSocket,&buffer[i],1,0);
 		
 		if( rc == SOCKET_ERROR )
 		{
 			std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-			//closesocket(c.clientSocket);
+			//closesocket(con.clientSocket);
 			//WSACleanup();
 			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
 			//return;
@@ -175,19 +175,19 @@ CommandClient::~CommandClient() {
 
 // attempt to connect to the a ftp server on a specified ip and port
 void CommandClient::initConnection(const char *ip, const char *port) {
-	int rc = WSAStartup(MAKEWORD(2,2), &c.wsaData);
+	int rc = WSAStartup(MAKEWORD(2,2), &con.wsaData);
 	if(rc != 0) {
 		std::cerr << "WSAStartup failed: " << rc << std::endl;
 		exit(1);
 	}
 	
-	ZeroMemory(&c.hints,sizeof(c.hints));
-	c.hints.ai_family = AF_UNSPEC;
-	c.hints.ai_socktype = SOCK_STREAM;
-	c.hints.ai_protocol = IPPROTO_TCP;
+	ZeroMemory(&con.hints,sizeof(con.hints));
+	con.hints.ai_family = AF_UNSPEC;
+	con.hints.ai_socktype = SOCK_STREAM;
+	con.hints.ai_protocol = IPPROTO_TCP;
 	
 	//resolve server address and port
-	rc = getaddrinfo(ip,port,&c.hints, &c.result);
+	rc = getaddrinfo(ip,port,&con.hints, &con.result);
 	if(rc != 0) {
 		std::cerr << "getaddrinfo failed: " << rc << std::endl;
 		WSACleanup();
@@ -195,9 +195,9 @@ void CommandClient::initConnection(const char *ip, const char *port) {
 	}
 	
 	// attempt connection until one succeeds
-	for(c.ptr=c.result; c.ptr != NULL; c.ptr=c.ptr->ai_next) {
-		c.clientSocket = socket(c.ptr->ai_family, c.ptr->ai_socktype, c.ptr->ai_protocol);
-		if(c.clientSocket == INVALID_SOCKET) {
+	for(con.ptr=con.result; con.ptr != NULL; con.ptr=con.ptr->ai_next) {
+		con.clientSocket = socket(con.ptr->ai_family, con.ptr->ai_socktype, con.ptr->ai_protocol);
+		if(con.clientSocket == INVALID_SOCKET) {
 			std::cerr << "socket failed: " << WSAGetLastError() << std::endl;
 			WSACleanup();
 			exit(1);
@@ -206,18 +206,18 @@ void CommandClient::initConnection(const char *ip, const char *port) {
 
 		
 		// connect to the server
-		rc = connect(c.clientSocket,c.ptr->ai_addr, (int)c.ptr->ai_addrlen);
+		rc = connect(con.clientSocket,con.ptr->ai_addr, (int)con.ptr->ai_addrlen);
 		if(rc == SOCKET_ERROR) {
-			closesocket(c.clientSocket);
-			c.clientSocket = INVALID_SOCKET;
+			closesocket(con.clientSocket);
+			con.clientSocket = INVALID_SOCKET;
 			continue;
 		}
 		break;
 	}
 	
-	freeaddrinfo(c.result);
+	freeaddrinfo(con.result);
 	
-	if(c.clientSocket == INVALID_SOCKET) {
+	if(con.clientSocket == INVALID_SOCKET) {
 		std::cerr << "unable to connect to server" << std::endl;
 		WSACleanup();
 		exit(1);

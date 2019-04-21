@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
 			// however before we get the dir listing we need to setup the data channel
 			// with PASV for this we need to send a command for pasv get the port back
 			// and then make a new tempoary client and connect on it
-			ftp::PassiveClient data_client = ftp::initPasv(client);
+			ftp::DataClient data_client = ftp::initPasv(client);
 		
 			client.sendCommand("LIST" + arg);
 			std::string resp = client.recvCommand(); // check the error code in here too
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
 			}
 	
 			// setup the data connection
-			ftp::PassiveClient data_client = ftp::initPasv(client);
+			ftp::DataClient data_client = ftp::initPasv(client);
 			
 			
 			// now request the file 

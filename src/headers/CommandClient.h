@@ -13,12 +13,13 @@
 
 // holds the socket and connection info 
 // for data being sent over the command port
+// could reuse the dataclient one but this 
+// makes its purpose more clear
 typedef struct {
 	struct addrinfo *result;
 	struct addrinfo *ptr;
 	struct addrinfo hints;
 	SOCKET clientSocket;
-	//SOCKET listenSocket; <-- required for the data port but not the command port
 	WSADATA wsaData;
 } CommandClient_struct;
 
@@ -49,7 +50,7 @@ private:
 	
 	
 	// the internal connection struct
-	CommandClient_struct c; // internal struct to hold socket info
+	CommandClient_struct con; // internal struct to hold socket info
 };
 
 };

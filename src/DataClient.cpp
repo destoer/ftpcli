@@ -6,6 +6,12 @@
 
 namespace ftp {
 
+DataClient::DataClient(DataClient_struct connection) :con(connection) {}
+
+DataClient::~DataClient() {
+	closesocket(con.clientSocket);
+}
+
 // will throw an exception if there is an attempt to read out of the state
 // while it is false
 // besides setting the var when the tranfser is done 
@@ -20,7 +26,7 @@ bool DataClient::recvAscii(std::string &data) {
 	bool success = false;
 
 	// read one byte out first and set index to 1 so we cant read out of bounds
-	int rc = recv(c.clientSocket,buffer,1,0);
+	int rc = recv(con.clientSocket,buffer,1,0);
 		
 	if(rc == 0) { // socket has been closed and data transfer ended
 		transfer_state = false; // indicate we are done
@@ -37,7 +43,7 @@ bool DataClient::recvAscii(std::string &data) {
 	// start at one so we dont read out of bounds
 	for(int i{1}; i < 512; i++)
 	{
-		int rc = recv(c.clientSocket,&buffer[i],1,0);
+		int rc = recv(con.clientSocket,&buffer[i],1,0);
 		
 		if(rc == 0) { // socket has been closed and data transfer ended
 			transfer_state = false; // indicate we are done
@@ -47,7 +53,7 @@ bool DataClient::recvAscii(std::string &data) {
 		
 		else if( rc == SOCKET_ERROR ) {
 			std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-			//closesocket(c.clientSocket);
+			//closesocket(con.clientSocket);
 			//WSACleanup();
 			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
 			//return; // should except by here
@@ -89,7 +95,7 @@ int DataClient::recvFile(std::string filename) {
 	for(;;)
 	{
 		// recv until the conneciton is closed or the buffer is full
-		int rc = recv(c.clientSocket,reinterpret_cast<char*>(&buf),4096,MSG_WAITALL);
+		int rc = recv(con.clientSocket,reinterpret_cast<char*>(&buf),4096,MSG_WAITALL);
 	
 		if(rc == 0) { // socket is closed and the file xfer is done 
 			fp.close();
@@ -98,7 +104,7 @@ int DataClient::recvFile(std::string filename) {
 		
 		else if( rc == SOCKET_ERROR ) {
 			std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-			//closesocket(c.clientSocket);
+			//closesocket(con.clientSocket);
 			//WSACleanup();
 			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
 			//return; // should except by here
@@ -112,6 +118,8 @@ int DataClient::recvFile(std::string filename) {
 	}
 	
 }
+
+
 
 
 };
