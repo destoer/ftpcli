@@ -9,7 +9,10 @@ namespace ftp {
 DataClient::DataClient(DataClient_struct connection) :con(connection) {}
 
 DataClient::~DataClient() {
-	closesocket(con.clientSocket);
+	if(con.clientSocket != INVALID_SOCKET) { // if null its allready shut 
+									 // dont do it twice
+		closesocket(con.clientSocket);
+	}
 }
 
 // will throw an exception if there is an attempt to read out of the state
@@ -19,7 +22,7 @@ DataClient::~DataClient() {
 
 bool DataClient::recvAscii(std::string &data) {
 	
-	if(!transfer_state) { } // should  except here
+	if(!transfer_state) { return false; } // should  except here
 	
 	char buffer[512] = {0};
 	
@@ -92,8 +95,7 @@ int DataClient::recvFile(std::string filename) {
 	fp.open(filename,std::ios::binary | std::ios::out);
 	
 	
-	for(;;)
-	{
+	for(;;) {
 		// recv until the conneciton is closed or the buffer is full
 		int rc = recv(con.clientSocket,reinterpret_cast<char*>(&buf),4096,MSG_WAITALL);
 	
@@ -107,6 +109,7 @@ int DataClient::recvFile(std::string filename) {
 			//closesocket(con.clientSocket);
 			//WSACleanup();
 			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
+			// this might be recoverable but probably not
 			//return; // should except by here
 			exit(1);
 		}	
@@ -116,9 +119,60 @@ int DataClient::recvFile(std::string filename) {
 			fp.write(buf,rc);
 		}
 	}
-	
 }
 
+
+int DataClient::sendFile(std::string filename) {
+	const size_t SIZE = 4096;
+	char buf[SIZE];
+	int rc = 0;
+	std::fstream fp{filename, std::ios::binary | std::ios::in};
+	
+	if(!fp) {
+		std::cout << "File: " << filename << "not found!\n";
+		return -1; // should return a #defined error code
+				   // for when we fool "proof" this as a lib
+				   // this is something that "should" actually fail 
+				   // unlike a the sockets failing so we should not except for it
+	}
+	
+	// get file size
+	fp.seekg(0,std::ios::end);
+	int len = fp.tellg();
+	const int lengthOfFile = len;
+	fp.clear();
+	fp.seekg(0,std::ios::beg);
+	
+	while(len != 0) {
+	
+		if(len >= SIZE) {
+			// read in the file and send 
+			fp.read(buf,SIZE);
+			rc = send(con.clientSocket,buf,SIZE,0);
+			if(rc < 0)
+			{
+				std::cerr << "send failed: " << WSAGetLastError() << std::endl;
+				exit(1);
+			}
+			len -= SIZE;
+		}
+		
+		// read remaining length
+		else {
+			fp.read(buf, len);
+			rc = send(con.clientSocket,buf,len,0);
+			if(rc < 0)
+			{
+				std::cerr << "send failed: " << WSAGetLastError() << std::endl;
+				exit(1);
+			}
+			len = 0;
+		}	
+	}
+	closesocket(con.clientSocket);
+	con.clientSocket = INVALID_SOCKET; // indicate we dont need to do it 
+	return lengthOfFile;
+}
 
 
 

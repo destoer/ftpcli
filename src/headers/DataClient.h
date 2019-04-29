@@ -30,6 +30,7 @@ public: // implements the data send and recv funcitons
 	~DataClient();
 	bool recvAscii(std::string &data);
 	int recvFile(std::string filename);
+	int sendFile(std::string filename);
 	bool toRecv(void) const; // true if more is to read  otherwhise false 
 
 

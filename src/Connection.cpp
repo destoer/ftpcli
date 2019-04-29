@@ -13,8 +13,7 @@ DataClient_struct initActiveStruct(const char *port) {
 						 // as we have one peer past this we are done with this socket 
 						 // and it can be shut down
 	int rc = WSAStartup(MAKEWORD(2,2), &c.wsaData);
-	if(rc != 0) // non zero is a fatal error
-	{
+	if(rc != 0) { // non zero is a fatal error
 		std::cerr << "WSAStarted failed:" << rc << std::endl;
 		exit(1); // fine to exit here instead of raising an exception
 				// because the server will be in a useless state if the server
@@ -30,8 +29,7 @@ DataClient_struct initActiveStruct(const char *port) {
 	// resolve the server address and port
 	// hardcoded port
 	rc = getaddrinfo(NULL,port, &(c.hints), &(c.result));
-	if(rc != 0)
-	{
+	if(rc != 0) {
 		std::cerr << "getaddrinfo failed: " << rc << std::endl;
 		WSACleanup();
 		exit(1);
@@ -39,8 +37,7 @@ DataClient_struct initActiveStruct(const char *port) {
 	
 	// create a socket connecting to the server
 	listenSocket = socket(c.result->ai_family, c.result->ai_socktype, c.result->ai_protocol);
-	if(listenSocket == INVALID_SOCKET)
-	{
+	if(listenSocket == INVALID_SOCKET) {
 		std::cerr << "socket failed: " << WSAGetLastError() << std::endl;
 		freeaddrinfo(c.result);
 		WSACleanup();
@@ -50,8 +47,7 @@ DataClient_struct initActiveStruct(const char *port) {
 	
 	// bind the socket
 	rc = bind(listenSocket,c.result->ai_addr, (int)c.result->ai_addrlen);
-	if(rc == SOCKET_ERROR)
-	{
+	if(rc == SOCKET_ERROR) {
 		std::cerr << "bind failed: " << WSAGetLastError() << std::endl;
 		freeaddrinfo(c.result);
 		closesocket(listenSocket);
@@ -66,8 +62,7 @@ DataClient_struct initActiveStruct(const char *port) {
 	
 	// accept a client connection
 	c.clientSocket = accept(listenSocket,NULL,NULL);
-	if(c.clientSocket == INVALID_SOCKET)
-	{
+	if(c.clientSocket == INVALID_SOCKET) {
 		std::cerr << "accept failed: " << WSAGetLastError() << std::endl;
 		closesocket(listenSocket);
 		WSACleanup();

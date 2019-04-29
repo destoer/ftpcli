@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include "headers/ftp.h"
+#include "headers/lib.h"
 
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x501 
@@ -17,10 +18,14 @@
 #include <ws2tcpip.h>
 
 
-// need the client class as the CommandClient class
-// and another for the data port called DataClient
-// which needs to listen and use some of our server code...
-// to perform the data transfers
+/*TODO*/
+
+// need "abstract" the socket code into a class and have it raise exceptiosn instead 
+// of many places in the code (a simple wrapper will do)
+
+// need to finish implementing the commands (most can use the default handler)
+
+// add a gui
 
 
 //https://en.wikipedia.org/wiki/List_of_FTP_commands
@@ -88,7 +93,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	std::cout << "password: ";
-	std::string password; // could use get line and save the allocation...
+	std::string password;
 	std::cin >> password;
 	
 	client.sendCommand("PASS " + password);
@@ -97,7 +102,7 @@ int main(int argc, char *argv[]) {
 	
 	
 	// ok we are now authenticated the user will now being sending commands 
-	// lets configure the data port with the PORT command behind the scenes
+	// lets configure the data port with the P ORT command behind the scenes
 	
 	
 	// for now we will user PASV to test the data send protocol
@@ -123,12 +128,12 @@ int main(int argc, char *argv[]) {
 		
 		
 		if(pos != std::string::npos) {
-			arg = command.substr(pos); // get the arg
+			arg = command.substr(pos+1); // get the arg
 			command = command.substr(0,pos); // strip after it so we have just the command
 		} else { // no arg
 			arg = "";
 		}
-		
+	
 		// now its been parsed ignore case in the command
 		for(auto& x : command) { // take ref so we can modify it
  			x = std::tolower(x);
@@ -141,9 +146,10 @@ int main(int argc, char *argv[]) {
 			// however before we get the dir listing we need to setup the data channel
 			// with PASV for this we need to send a command for pasv get the port back
 			// and then make a new tempoary client and connect on it
+			// this is implemented in initPasv and initPasvStruct 
 			ftp::DataClient data_client = ftp::initPasv(client);
 		
-			client.sendCommand("LIST" + arg);
+			client.sendCommand("LIST " + arg);
 			std::string resp = client.recvCommand(); // check the error code in here too
 			
 			std::cout << resp;
@@ -187,7 +193,7 @@ int main(int argc, char *argv[]) {
 			
 			
 			// now request the file 
-			client.sendCommand("RETR" + arg);
+			client.sendCommand("RETR " + arg);
 			
 			resp = client.recvCommand();
 			
@@ -219,6 +225,70 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
+		// for get command we should specify type i for binary 
+		// and just straight up blast bytes at the server
+		else if(command == "put") { // should check its open before bothering at all 
+									// but we will recheck in the function so its not misued..
+		
+			if(!fileExists(arg)) {
+				std::cout << "File does not exist: '" << arg
+					<< "' please try again!\n";
+				
+				continue;
+			}
+		
+		
+			client.sendCommand("TYPE I"); // switch to binary transfer
+			// may need to switch back to ascii for the dir send
+			
+			std::string resp = client.recvCommand();
+			
+			std::cout << resp;
+			
+			// should handle this when its gui 
+			// but its up to the user to decide in cli 
+			// we will just prevent the send from going further for now
+			if(ftp::isError(ftp::getErrorCode(resp))) {
+				continue;
+			}
+	
+			// setup the data connection
+			ftp::DataClient data_client = ftp::initPasv(client);
+			
+			
+			// now request to send the file 
+			client.sendCommand("STOR " + arg);
+			
+			resp = client.recvCommand();
+			
+			std::cout << resp;
+			
+			// check that the file is valid
+			// 550 is filesystem error
+			if(ftp::getErrorCode(resp) == 550) {	
+				// in this case it will give us some info why 
+				// the file access failed 
+				// we need to read until we get another 550 code 
+				resp = client.recvCommand();
+				std::cout << resp;
+				while(resp.substr(0,3) != "550") {
+					resp = client.recvCommand();
+					std::cout << resp;
+				}
+				continue;
+			}
+			
+			// send the file
+			int len = data_client.sendFile(arg);
+			
+			resp = client.recvCommand();
+			std::cout << resp;
+			
+			if(!ftp::isError(ftp::getErrorCode(resp))) {
+				std::cout << "sent: " << len << " bytes!\n";
+			}
+		}		
+		
 		
 		// quit out the program
 		else if(command == "quit" || command == "bye") {
@@ -234,10 +304,8 @@ int main(int argc, char *argv[]) {
 		// when our implementation is complete
 		else {
 			std::cerr << "[DEBUG] unknown command!\n";
-			client.sendCommand(command+arg);
+			client.sendCommand(command+ " " + arg);
 			std::cout << client.recvCommand();		
 		}
-	}
-	
-	
+	}	
 }

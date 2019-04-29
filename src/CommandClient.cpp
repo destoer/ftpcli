@@ -1,6 +1,7 @@
 #include "headers/CommandClient.h"
 #include <iostream>
 #include <utility>
+#include <regex>
 
 
 // Client constructor will setup the connection struct
@@ -37,9 +38,20 @@ std::pair<std::string,std::string> CommandClient::initPasv(std::string pasv_repl
 	// then finally pull the port
 	
 	// get just the bit we need out of the command reply
-	size_t pos1 = pasv_reply.find("("); 
-	size_t pos2 = pasv_reply.find(")");
-	std::string tmp = pasv_reply.substr(pos1+1,(pos2-1)-pos1);
+	// 192,168,1,16,191,60 <-- regex below should pull this
+	std::regex r("((\\d{1,3},){5})\\d*");
+	std::smatch m;
+	
+	std::string tmp;
+	if(std::regex_search(pasv_reply,m,r)) {
+		tmp = pasv_reply.substr(m.position(), m.length());
+	}
+		
+	else { // should except as this should not fail
+		std::cerr << "invalid address!" << std::endl;
+		exit(1);
+	}
+	
 	
 	// for the first 4 replace ',' with '.'
 	size_t index = 0; 
@@ -126,7 +138,7 @@ std::string CommandClient::recvCommand() {
 	}	
 		
 	if(rc == 0) { // command socket has closed!?
-		std::cerr << "server command channel closed unexpectedadly: " << std::endl;
+		std::cerr << "server command channel closed unexpectedadly!" << std::endl;
 		exit(1);
 	}
 	
@@ -142,6 +154,8 @@ std::string CommandClient::recvCommand() {
 			//closesocket(con.clientSocket);
 			//WSACleanup();
 			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
+			// but this is more or less fatal for a commandClient as there is no real way to communicate to the server anymore
+			// in the gui it should return to the main menu and give a reconnect option
 			//return;
 			exit(1);
 		}	
