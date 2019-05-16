@@ -1,4 +1,5 @@
 #include "headers/CommandClient.h"
+#include "headers/net.h"
 #include <iostream>
 #include <utility>
 #include <regex>
@@ -106,17 +107,7 @@ void CommandClient::sendCommand(std::string command) {
 
 	
 	// send the actual buffer
-	int rc = send(con.clientSocket,command.c_str(),len,0);
-	if(rc == SOCKET_ERROR)
-	{
-		std::cerr << "send failed: " << WSAGetLastError() << std::endl;
-		//closesocket(con.clientSocket);
-		//WSACleanup();
-		//throw runtime_error("Send failed: " + WSAGetLastError());
-		//return; // should throw an exception here
-		exit(1);
-	}
-	
+	int rc = net::checkedSend(con.clientSocket,command.c_str(),len);
 }
 
 
@@ -129,13 +120,7 @@ std::string CommandClient::recvCommand() {
 
 	// read one byte first and start at one 
 	// so we cant read out of bounds
-	int rc = recv(con.clientSocket,buffer,1,0);
-		
-	if( rc == SOCKET_ERROR )
-	{
-		std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-		exit(1);
-	}	
+	int rc = net::checkedRecv(con.clientSocket,buffer,1);
 		
 	if(rc == 0) { // command socket has closed!?
 		std::cerr << "server command channel closed unexpectedadly!" << std::endl;
@@ -146,25 +131,12 @@ std::string CommandClient::recvCommand() {
 	for(int i{1}; i < 512; i++)
 	{
 		// read one byte
-		int rc = recv(con.clientSocket,&buffer[i],1,0);
-		
-		if( rc == SOCKET_ERROR )
-		{
-			std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-			//closesocket(con.clientSocket);
-			//WSACleanup();
-			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
-			// but this is more or less fatal for a commandClient as there is no real way to communicate to the server anymore
-			// in the gui it should return to the main menu and give a reconnect option
-			//return;
-			exit(1);
-		}	
+		int rc = net::checkedRecv(con.clientSocket,&buffer[i],1);	
 		
 		if(rc == 0) { // command socket has closed!?
 			std::cerr << "server command channel closed unexpectedadly: " << std::endl;
 			exit(1);
 		}
-		
 		
 		if(buffer[i] == '\n' && buffer[i-1] == '\r')
 		{

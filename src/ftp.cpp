@@ -9,6 +9,7 @@
 #include <limits.h>
 #include "headers/ftp.h"
 #include "headers/lib.h"
+#include "headers/net.h"
 
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x501 
@@ -63,6 +64,8 @@ int main(int argc, char *argv[]) {
 	// should get back the 220 code and be ready to auth
 	std::string reply = client.recvCommand();
 	std::cout << reply;
+	
+try  {	
 	
 	int rc = ftp::getErrorCode(reply);
 	
@@ -201,8 +204,10 @@ int main(int argc, char *argv[]) {
 			
 			// check that the file is valid
 			// 550 is filesystem error
-			if(ftp::getErrorCode(resp) == 550) {	
-				// in this case it will give us some info why 
+			if(ftp::isError(ftp::getErrorCode(resp))) {	
+				// not sure about the behavior here
+				
+			/*	// in this case it will give us some info why 
 				// the file access failed 
 				// we need to read until we get another 550 code 
 				resp = client.recvCommand();
@@ -211,6 +216,8 @@ int main(int argc, char *argv[]) {
 					resp = client.recvCommand();
 					std::cout << resp;
 				}
+				continue;
+			*/
 				continue;
 			}
 			
@@ -307,5 +314,10 @@ int main(int argc, char *argv[]) {
 			client.sendCommand(command+ " " + arg);
 			std::cout << client.recvCommand();		
 		}
-	}	
+	}
+} catch(net::SocketError &e) { // for a cli this is fine for gui we want to go back to a menu
+	std::cout << e.what() << "\n";
+	exit(1);
+}
+	
 }

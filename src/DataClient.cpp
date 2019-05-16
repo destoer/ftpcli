@@ -1,6 +1,7 @@
 // functions for sending and receiving data over the data port will go here
 #include "headers/DataClient.h"
 #include "headers/constants.h"
+#include "headers/net.h"
 #include <iostream>
 #include <fstream>
 
@@ -29,40 +30,24 @@ bool DataClient::recvAscii(std::string &data) {
 	bool success = false;
 
 	// read one byte out first and set index to 1 so we cant read out of bounds
-	int rc = recv(con.clientSocket,buffer,1,0);
+	int rc = net::checkedRecv(con.clientSocket,buffer,1);
 		
 	if(rc == 0) { // socket has been closed and data transfer ended
 		transfer_state = false; // indicate we are done
 		return false;
 	}
 
-		
-	else if( rc == SOCKET_ERROR ) {
-		std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-		exit(1);
-	}	
-	
-	
 	// start at one so we dont read out of bounds
 	for(int i{1}; i < 512; i++)
 	{
-		int rc = recv(con.clientSocket,&buffer[i],1,0);
+		int rc = net::checkedRecv(con.clientSocket,&buffer[i],1);
 		
 		if(rc == 0) { // socket has been closed and data transfer ended
 			transfer_state = false; // indicate we are done
 			return false;
 		}
+	
 
-		
-		else if( rc == SOCKET_ERROR ) {
-			std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-			//closesocket(con.clientSocket);
-			//WSACleanup();
-			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
-			//return; // should except by here
-			exit(1);
-		}	
-		
 		// buffer must have alteast one thing in it 
 		// so checking the buffer backwards cannot read out of bounds
 		if(buffer[i] == '\n' && buffer[i-1] == '\r') {
@@ -97,22 +82,12 @@ int DataClient::recvFile(std::string filename) {
 	
 	for(;;) {
 		// recv until the conneciton is closed or the buffer is full
-		int rc = recv(con.clientSocket,reinterpret_cast<char*>(&buf),4096,MSG_WAITALL);
+		int rc = net::checkedRecv(con.clientSocket,reinterpret_cast<char*>(&buf),4096,MSG_WAITALL);
 	
 		if(rc == 0) { // socket is closed and the file xfer is done 
 			fp.close();
 			return i;
 		}
-		
-		else if( rc == SOCKET_ERROR ) {
-			std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-			//closesocket(con.clientSocket);
-			//WSACleanup();
-			//throw runtime_error("recv failed" + WSAGetLastError()); (should throw our own well defined error)
-			// this might be recoverable but probably not
-			//return; // should except by here
-			exit(1);
-		}	
 		
 		else { // write the data out
 			i += rc;
@@ -148,24 +123,14 @@ int DataClient::sendFile(std::string filename) {
 		if(len >= SIZE) {
 			// read in the file and send 
 			fp.read(buf,SIZE);
-			rc = send(con.clientSocket,buf,SIZE,0);
-			if(rc < 0)
-			{
-				std::cerr << "send failed: " << WSAGetLastError() << std::endl;
-				exit(1);
-			}
+			rc = net::checkedSend(con.clientSocket,buf,SIZE);
 			len -= SIZE;
 		}
 		
 		// read remaining length
 		else {
 			fp.read(buf, len);
-			rc = send(con.clientSocket,buf,len,0);
-			if(rc < 0)
-			{
-				std::cerr << "send failed: " << WSAGetLastError() << std::endl;
-				exit(1);
-			}
+			rc = net::checkedSend(con.clientSocket,buf,len);
 			len = 0;
 		}	
 	}
